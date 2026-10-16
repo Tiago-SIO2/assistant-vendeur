@@ -1,4 +1,6 @@
-import { LIMITES, type Annonce } from "@/lib/annonce";
+import { LIMITES } from "@/lib/annonce";
+import { genererAnnonce } from "@/lib/generer-annonce";
+import { reponseErreurIA } from "@/lib/erreurs-ia";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -11,15 +13,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Simulation du temps de réponse d'un modèle d'IA
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  // Annonce simulée, remplacée par l'IA à l'étape 5
-  const annonce: Annonce = {
-    mots_cles: motsCles,
-    description: `Description simulée pour « ${motsCles} ».`,
-    prix_estime: 25,
-  };
-
-  return Response.json(annonce);
+  try {
+    const { annonce } = await genererAnnonce(motsCles);
+    return Response.json(annonce);
+  } catch (erreur) {
+    return reponseErreurIA(erreur);
+  }
 }

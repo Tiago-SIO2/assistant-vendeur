@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { LIMITES, type Annonce } from "@/lib/annonce";
+import AffichageAnnonce from "@/components/AffichageAnnonce";
 
 export default function FormulaireArticle() {
   const [motsCles, setMotsCles] = useState("");
@@ -77,11 +78,7 @@ export default function FormulaireArticle() {
         </p>
       )}
 
-      {annonce && (
-        <pre className="mt-4 whitespace-pre-wrap rounded bg-gray-100 p-4 text-sm text-gray-800">
-          {JSON.stringify(annonce, null, 2)}
-        </pre>
-      )}
+      {annonce && <AffichageAnnonce annonce={annonce} />}
     </div>
   );
 }
