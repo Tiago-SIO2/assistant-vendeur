@@ -6,9 +6,9 @@ export const dynamic = "force-dynamic";
 
 export default async function PageAdmin() {
   // Réservé au local tant que l'authentification n'existe pas
-  if (process.env.NODE_ENV === "production") {
-    notFound();
-  }
+if (process.env.NODE_ENV === "production" && process.env.ADMIN_PUBLIC !== "true") {
+  notFound();
+}
 
   const rapport = await verifierTousLesServices();
 
