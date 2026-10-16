@@ -1,9 +1,15 @@
 import AffichageAnnonce from "@/components/AffichageAnnonce";
 import { itemVersAnnonce, type Item } from "@/lib/annonce";
 
-export default function CarteArticle({ item }: { item: Item }) {
+export default function CarteArticle({
+  item,
+  photoUrl = null,
+}: {
+  item: Item;
+  photoUrl?: string | null;
+}) {
   if (item.statut === "termine") {
-    return <AffichageAnnonce annonce={itemVersAnnonce(item)} />;
+    return <AffichageAnnonce annonce={itemVersAnnonce(item)} photoUrl={photoUrl} />;
   }
 
   return (

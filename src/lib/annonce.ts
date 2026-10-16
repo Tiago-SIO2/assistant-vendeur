@@ -41,12 +41,13 @@ export type Item = {
   couleur: string | null;
   etat: Etat | null;
   hashtags: string[] | null;
+  photo_path: string | null;
   statut: Statut;
   created_at: string;
 };
 
 export const COLONNES_ITEM =
-  "id, collection_id, mots_cles, titre, description, prix_estime, marque, taille, couleur, etat, hashtags, statut, created_at";
+  "id, collection_id, mots_cles, titre, description, prix_estime, marque, taille, couleur, etat, hashtags, photo_path, statut, created_at";
 
 export const FORMAT_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +56,17 @@ export const LIMITES = {
   motsClesMin: 10,
   motsClesMax: 300,
   nomCollectionMax: 100,
+};
+
+export const PHOTOS = {
+  bucket: "photos",
+  tailleMaxOctets: 5 * 1024 * 1024,
+  extensions: {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  } as Record<string, string>,
+  dureeLienSecondes: 3600,
 };
 
 export function itemVersAnnonce(item: Item): Annonce {

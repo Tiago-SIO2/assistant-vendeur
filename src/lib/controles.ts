@@ -77,12 +77,34 @@ const controleAuth: Controle = {
     return "Service d'authentification joignable";
   },
 };
+const controleStockage: Controle = {
+  service: "Supabase Storage",
+  description: "Stockage des photos des articles",
+  verifier: async () => {
+    const supabase = creerClientAdmin();
+    const { data, error } = await supabase.storage.getBucket("photos");
 
+    if (error || !data) {
+      throw new Error(error?.message ?? "Bucket « photos » introuvable");
+    }
+
+    if (data.public) {
+      throw new Error("Le bucket « photos » est public : les photos sont exposées à tous");
+    }
+
+    const limiteMo = data.file_size_limit
+      ? `${Math.round(data.file_size_limit / 1024 / 1024)} Mo`
+      : "aucune";
+
+    return `Bucket « photos » privé · Taille maximale : ${limiteMo}`;
+  },
+};
 export const CONTROLES: Controle[] = [
   controleVercel,
   controleIA,
   controleBase,
   controleAuth,
+  controleStockage,
 ];
 
 export async function verifierTousLesServices(): Promise<Rapport> {

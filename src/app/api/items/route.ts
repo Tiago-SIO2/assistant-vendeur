@@ -4,7 +4,6 @@ import { reponseErreurIA } from "@/lib/erreurs-ia";
 import { creerClientServeur } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  // 0. La session est vérifiée avant tout : inutile de consommer du quota d'IA pour un anonyme
   const supabase = await creerClientServeur();
   const {
     data: { user },
@@ -17,6 +16,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const motsCles = typeof body.mots_cles === "string" ? body.mots_cles.trim() : "";
   const collectionId = typeof body.collection_id === "string" ? body.collection_id : "";
+  const photoPath = typeof body.photo_path === "string" ? body.photo_path : null;
 
   if (!FORMAT_UUID.test(collectionId)) {
     return Response.json({ erreur: "Collection invalide." }, { status: 400 });
@@ -28,7 +28,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1. La collection existe-t-elle ET appartient-elle à l'utilisateur ? (la RLS filtre)
+  // La photo doit être dans le dossier de l'utilisateur, avec un nom au bon format
+  const formatPhoto = new RegExp(
+    `^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`
+  );
+  if (photoPath !== null && !formatPhoto.test(photoPath)) {
+    return Response.json({ erreur: "Photo invalide." }, { status: 400 });
+  }
+
   const { data: collection } = await supabase
     .from("collections")
     .select("id")
@@ -38,7 +45,6 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Collection introuvable." }, { status: 404 });
   }
 
-  // 2. Génération par l'IA
   let resultat: ResultatGeneration;
   try {
     resultat = await genererAnnonce(motsCles);
@@ -46,7 +52,6 @@ export async function POST(request: Request) {
     return reponseErreurIA(erreur);
   }
 
-  // 3. Enregistrement (user_id est rempli par la base grâce à auth.uid())
   const { annonce } = resultat;
   const { data, error } = await supabase
     .from("items")
@@ -61,6 +66,7 @@ export async function POST(request: Request) {
       couleur: annonce.couleur,
       etat: annonce.etat,
       hashtags: annonce.hashtags,
+      photo_path: photoPath,
       statut: "termine",
     })
     .select(COLONNES_ITEM)
