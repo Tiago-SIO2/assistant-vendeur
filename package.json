@@ -2,12 +2,16 @@
   "name": "assistant-vendeur",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
+"scripts": {
+  "dev": "next dev",
+  "typecheck": "next typegen && tsc --noEmit",
+  "lint": "eslint . --max-warnings=0",
+  "build": "npm run typecheck && npm run lint && next build",
+  "start": "next start"
+},
+"engines": {
+  "node": ">=20"
+},
   "dependencies": {
     "next": "16.4.2",
     "react": "19.3.0",
