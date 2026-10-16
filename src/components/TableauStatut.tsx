@@ -58,7 +58,7 @@ export default function TableauStatut({ rapportInitial }: { rapportInitial: Rapp
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500" suppressHydrationWarning>
-            Vérifié le {new Date(rapport.verifieLe).toLocaleString("fr-FR")}
+            Vérifié le {new Date(rapport.verifieLe).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}
           </p>
           <button
             onClick={relancer}
