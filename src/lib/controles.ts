@@ -1,13 +1,15 @@
+import "server-only";
 import { executerControle, pireEtat, type Controle, type Rapport } from "@/lib/statut";
+import { creerClientAdmin } from "@/lib/supabase/admin";
 
 const controleVercel: Controle = {
   service: "Vercel",
   description: "Hébergement et fonctions serverless",
   verifier: async () => {
-    const env = process.env.VERCEL_ENV ?? "local";
-    const region = process.env.VERCEL_REGION ?? "poste local";
-    const commit = (process.env.VERCEL_GIT_COMMIT_SHA ?? "aucun").slice(0, 7);
-    return `Environnement : ${env} · Région : ${region} · Commit : ${commit}`;
+    const environnement = process.env.VERCEL_ENV ?? "local";
+    const region = process.env.VERCEL_REGION ?? "poste du développeur";
+    const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "aucun";
+    return `Environnement : ${environnement} · Région : ${region} · Commit : ${commit}`;
   },
 };
 
@@ -18,28 +20,70 @@ const controleIA: Controle = {
     const baseUrl = process.env.AI_BASE_URL;
     const apiKey = process.env.AI_API_KEY;
     const model = process.env.AI_MODEL;
+
     if (!baseUrl || !apiKey || !model) {
-      throw new Error("Configuration incomplète (AI_BASE_URL, AI_API_KEY ou AI_MODEL)");
+      throw new Error("Variables AI_BASE_URL, AI_API_KEY ou AI_MODEL manquantes");
     }
 
-    // GET /models vérifie la clé et le modèle sans consommer de tokens
     const reponse = await fetch(`${baseUrl}/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       cache: "no-store",
     });
+
     if (!reponse.ok) {
-      throw new Error(`L'API répond avec le code ${reponse.status}`);
+      throw new Error(`L'API a répondu avec le statut ${reponse.status}`);
     }
 
-    const donnees: { data: { id: string }[] } = await reponse.json();
-    if (!donnees.data.some((m) => m.id === model)) {
-      throw new Error(`Le modèle ${model} n'est pas disponible`);
+    const donnees = await reponse.json();
+    const modeleDisponible = donnees.data?.some(
+      (m: { id: string }) => m.id === model
+    );
+
+    if (!modeleDisponible) {
+      throw new Error(`Le modèle ${model} n'est pas disponible chez ce fournisseur`);
     }
+
     return `Modèle ${model} disponible sur ${new URL(baseUrl).host}`;
   },
 };
 
-const CONTROLES: Controle[] = [controleVercel, controleIA];
+const controleBase: Controle = {
+  service: "Supabase Database",
+  description: "Base de données des collections et articles",
+  verifier: async () => {
+    const supabase = creerClientAdmin();
+    const { count, error } = await supabase
+      .from("items")
+      .select("id", { count: "exact", head: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return `${count ?? 0} article(s) enregistré(s)`;
+  },
+};
+const controleAuth: Controle = {
+  service: "Supabase Auth",
+  description: "Connexion des utilisateurs",
+  verifier: async () => {
+    const supabase = creerClientAdmin();
+    const { error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return "Service d'authentification joignable";
+  },
+};
+
+export const CONTROLES: Controle[] = [
+  controleVercel,
+  controleIA,
+  controleBase,
+  controleAuth,
+];
 
 export async function verifierTousLesServices(): Promise<Rapport> {
   const resultats = await Promise.all(CONTROLES.map(executerControle));

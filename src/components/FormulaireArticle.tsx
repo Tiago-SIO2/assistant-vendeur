@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { LIMITES, type Annonce } from "@/lib/annonce";
-import AffichageAnnonce from "@/components/AffichageAnnonce";
+import { useRouter } from "next/navigation";
+import { LIMITES } from "@/lib/annonce";
 
-export default function FormulaireArticle() {
+export default function FormulaireArticle({ collectionId }: { collectionId: string }) {
+  const router = useRouter();
   const [motsCles, setMotsCles] = useState("");
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState("");
-  const [annonce, setAnnonce] = useState<Annonce | null>(null);
 
   const longueur = motsCles.trim().length;
   const valide = longueur >= LIMITES.motsClesMin && longueur <= LIMITES.motsClesMax;
@@ -17,13 +17,12 @@ export default function FormulaireArticle() {
     e.preventDefault();
     setChargement(true);
     setErreur("");
-    setAnnonce(null);
 
     try {
       const reponse = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mots_cles: motsCles }),
+        body: JSON.stringify({ collection_id: collectionId, mots_cles: motsCles }),
       });
       const donnees = await reponse.json();
 
@@ -31,7 +30,8 @@ export default function FormulaireArticle() {
         setErreur(donnees.erreur ?? "Une erreur est survenue.");
         return;
       }
-      setAnnonce(donnees);
+      setMotsCles("");
+      router.refresh();
     } catch {
       setErreur("Impossible de contacter le serveur.");
     } finally {
@@ -77,8 +77,6 @@ export default function FormulaireArticle() {
           {erreur}
         </p>
       )}
-
-      {annonce && <AffichageAnnonce annonce={annonce} />}
     </div>
   );
 }

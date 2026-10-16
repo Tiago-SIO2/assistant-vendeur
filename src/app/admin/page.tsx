@@ -1,14 +1,20 @@
 import { notFound } from "next/navigation";
 import TableauStatut from "@/components/TableauStatut";
+import { estAdmin } from "@/lib/admin";
 import { verifierTousLesServices } from "@/lib/controles";
+import { creerClientServeur } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function PageAdmin() {
-  // Réservé au local tant que l'authentification n'existe pas
-if (process.env.NODE_ENV === "production" && process.env.ADMIN_PUBLIC !== "true") {
-  notFound();
-}
+  const supabase = await creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !estAdmin(user.email)) {
+    notFound();
+  }
 
   const rapport = await verifierTousLesServices();
 

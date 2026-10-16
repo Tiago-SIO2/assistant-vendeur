@@ -21,10 +21,55 @@ export type Annonce = {
   hashtags: string[];
 };
 
+export type Statut = "en_attente" | "termine" | "erreur";
+
+export type Collection = {
+  id: string;
+  nom: string;
+  created_at: string;
+};
+
+export type Item = {
+  id: string;
+  collection_id: string;
+  mots_cles: string;
+  titre: string | null;
+  description: string | null;
+  prix_estime: number | null;
+  marque: string | null;
+  taille: string | null;
+  couleur: string | null;
+  etat: Etat | null;
+  hashtags: string[] | null;
+  statut: Statut;
+  created_at: string;
+};
+
+export const COLONNES_ITEM =
+  "id, collection_id, mots_cles, titre, description, prix_estime, marque, taille, couleur, etat, hashtags, statut, created_at";
+
+export const FORMAT_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const LIMITES = {
   motsClesMin: 10,
   motsClesMax: 300,
+  nomCollectionMax: 100,
 };
+
+export function itemVersAnnonce(item: Item): Annonce {
+  return {
+    mots_cles: item.mots_cles,
+    titre: item.titre ?? "",
+    description: item.description ?? "",
+    prix_estime: Number(item.prix_estime ?? 0),
+    marque: item.marque ?? "",
+    taille: item.taille ?? "",
+    couleur: item.couleur ?? "",
+    etat: item.etat ?? "Non précisé",
+    hashtags: item.hashtags ?? [],
+  };
+}
 
 export function annonceEnTexte(annonce: Annonce): string {
   const caracteristiques = [
