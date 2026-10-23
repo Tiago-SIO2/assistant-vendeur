@@ -5,6 +5,7 @@ import FormulaireArticle from "@/components/FormulaireArticle";
 import Ornement from "@/components/Ornement";
 import { COLONNES_ITEM, PHOTOS, type Item } from "@/lib/annonce";
 import { creerClientServeur } from "@/lib/supabase/server";
+import SuiviTempsReel from "@/components/SuiviTempsReel";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ export default async function PageCollection({
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <Link href="/" className="text-sm font-medium text-sauge-600 hover:underline">
-        ← Mes collections
+        <SuiviTempsReel collectionId={id} />
       </Link>
 
       <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">

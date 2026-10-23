@@ -1,11 +1,11 @@
 import { COLONNES_ITEM, FORMAT_UUID, LIMITES } from "@/lib/annonce";
-import { genererAnnonce, type ResultatGeneration } from "@/lib/generer-annonce";
-import { reponseErreurIA } from "@/lib/erreurs-ia";
 import { formaterDelai, verifierLimite, type ResultatLimite } from "@/lib/limitation";
+import { NOMBRE_RELANCES, qstash } from "@/lib/qstash";
+import { creerClientAdmin } from "@/lib/supabase/admin";
 import { creerClientServeur } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
- 
+  // 0. Session
   const supabase = await creerClientServeur();
   const {
     data: { user },
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Vous devez être connecté." }, { status: 401 });
   }
 
-
+  // 1. Validation
   const body = await request.json();
   const motsCles = typeof body.mots_cles === "string" ? body.mots_cles.trim() : "";
   const collectionId = typeof body.collection_id === "string" ? body.collection_id : "";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Photo invalide." }, { status: 400 }); // photo
   } // photo
 
-
+  // 2. La collection appartient-elle à l'utilisateur ? (RLS)
   const { data: collection } = await supabase
     .from("collections")
     .select("id")
@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Collection introuvable." }, { status: 404 });
   }
 
+  // 3. Limitation de débit
   let limite: ResultatLimite;
   try {
     limite = await verifierLimite(user.id);
@@ -55,7 +56,6 @@ export async function POST(request: Request) {
       { status: 503 }
     );
   }
-
   if (!limite.autorise) {
     return Response.json(
       { erreur: `Tu as atteint la limite de générations. Réessaie dans ${formaterDelai(limite.secondesAvantReprise)}.` },
@@ -63,42 +63,43 @@ export async function POST(request: Request) {
     );
   }
 
- 
-  let resultat: ResultatGeneration;
-  try {
-    resultat = await genererAnnonce(motsCles);
-  } catch (erreur) {
-    return reponseErreurIA(erreur);
-  }
-
-
-  const { annonce } = resultat;
-  const { data, error } = await supabase
+  // 4. Création de l'article « en attente », avec la session de l'utilisateur
+  const { data: item, error } = await supabase
     .from("items")
     .insert({
       collection_id: collectionId,
       mots_cles: motsCles,
-      titre: annonce.titre,
-      description: annonce.description,
-      prix_estime: annonce.prix_estime,
-      marque: annonce.marque,
-      taille: annonce.taille,
-      couleur: annonce.couleur,
-      etat: annonce.etat,
-      hashtags: annonce.hashtags,
-      photo_path: photoPath, 
-      statut: "termine",
+      photo_path: photoPath, // photo
+      statut: "en_attente",
     })
     .select(COLONNES_ITEM)
     .single();
 
-  if (error) {
-    console.error("Erreur lors de l'enregistrement de l'article :", error);
+  if (error || !item) {
+    console.error("Erreur lors de la création de l'article :", error);
     return Response.json(
-      { erreur: "L'annonce a été générée mais n'a pas pu être enregistrée." },
+      { erreur: "L'article n'a pas pu être créé. Réessayez plus tard." },
       { status: 500 }
     );
   }
 
-  return Response.json(data, { status: 201 });
+  // 5. Mise en file : QStash appellera le worker
+  try {
+    await qstash.publishJSON({
+      url: `${process.env.APP_URL}/api/worker`,
+      body: { item_id: item.id },
+      retries: NOMBRE_RELANCES,
+    });
+  } catch (erreurFile) {
+    console.error("Mise en file impossible :", erreurFile);
+    // Pas de règle UPDATE pour l'utilisateur : le serveur passe par le client admin
+    await creerClientAdmin().from("items").update({ statut: "erreur" }).eq("id", item.id);
+    return Response.json(
+      { erreur: "La génération n'a pas pu être lancée. Réessayez plus tard." },
+      { status: 503 }
+    );
+  }
+
+  // 6. Réponse immédiate : 202 = accepté, traitement en cours
+  return Response.json(item, { status: 202 });
 }
