@@ -1,5 +1,6 @@
 import { estAdmin } from "@/lib/admin";
-import { verifierTousLesServices } from "@/lib/controles";
+import { CONTROLES } from "@/lib/controles";
+import { executerControle, pireEtat, type Rapport } from "@/lib/statut";
 import { creerClientServeur } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,13 @@ export async function GET() {
     return Response.json({ erreur: "Accès réservé aux administrateurs." }, { status: 403 });
   }
 
-  const rapport = await verifierTousLesServices();
+  // Tous les contrôles en parallèle : la durée totale est celle du plus lent
+  const resultats = await Promise.all(CONTROLES.map(executerControle));
+  const rapport: Rapport = {
+    global: pireEtat(resultats),
+    verifieLe: new Date().toISOString(),
+    resultats,
+  };
+
   return Response.json(rapport);
 }

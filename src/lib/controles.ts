@@ -1,7 +1,7 @@
 import "server-only";
-import { redis } from "@/lib/limitation";
+import { QUOTA_GENERATIONS, redis } from "@/lib/limitation";
 import { qstash } from "@/lib/qstash";
-import { executerControle, pireEtat, type Controle, type Rapport } from "@/lib/statut";
+import type { Controle } from "@/lib/statut";
 import { creerClientAdmin } from "@/lib/supabase/admin";
 
 const controleVercel: Controle = {
@@ -115,7 +115,7 @@ const controleRedis: Controle = {
     }
 
     const nombreCles = await redis.dbsize();
-    return `Base joignable · ${nombreCles} clé(s) en mémoire`;
+    return `Base joignable · ${nombreCles} clé(s) · Limite : ${QUOTA_GENERATIONS} générations par heure`;
   },
 };
 
@@ -176,12 +176,3 @@ export const CONTROLES: Controle[] = [
   controleQStash,
   controleRealtime,
 ];
-
-export async function verifierTousLesServices(): Promise<Rapport> {
-  const resultats = await Promise.all(CONTROLES.map(executerControle));
-  return {
-    global: pireEtat(resultats),
-    verifieLe: new Date().toISOString(),
-    resultats,
-  };
-}

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import TableauStatut from "@/components/TableauStatut";
 import { estAdmin } from "@/lib/admin";
-import { verifierTousLesServices } from "@/lib/controles";
+import { CONTROLES } from "@/lib/controles";
+import { executerControle, pireEtat, type Rapport } from "@/lib/statut";
 import { creerClientServeur } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -16,13 +17,17 @@ export default async function PageAdmin() {
     notFound();
   }
 
-  const rapport = await verifierTousLesServices();
+  const resultats = await Promise.all(CONTROLES.map(executerControle));
+  const rapport: Rapport = {
+    global: pireEtat(resultats),
+    verifieLe: new Date().toISOString(),
+    resultats,
+  };
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-  <h1 className="font-titre text-4xl font-semibold tracking-tight">Administration</h1>
-      <h1 className="text-3xl font-bold">Administration</h1>
-      <p className="mt-2 text-gray-500">État des services dont dépend l’application.</p>
+      <h1 className="text-4xl font-semibold tracking-tight">Administration</h1>
+      <p className="mt-2 text-encre/60">État des services dont dépend l’application.</p>
       <TableauStatut rapportInitial={rapport} />
     </main>
   );

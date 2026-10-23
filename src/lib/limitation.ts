@@ -2,36 +2,32 @@ import "server-only";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+// Lit UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN
 export const redis = Redis.fromEnv();
 
-const limiteParMinute = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(5, "1 m"),
-  prefix: "assistant-vendeur:minute",
-});
+// Nombre de générations autorisées par utilisateur et par heure : change ce chiffre pour régler la limite
+export const QUOTA_GENERATIONS = 28;
 
-const limiteParJour = new Ratelimit({
+const limiteurGenerations = new Ratelimit({
   redis,
-  limiter: Ratelimit.fixedWindow(50, "1 d"),
-  prefix: "assistant-vendeur:jour",
+  limiter: Ratelimit.slidingWindow(QUOTA_GENERATIONS, "1 h"),
+  prefix: "assistant-vendeur:generations",
 });
 
 export type ResultatLimite =
-  | { autorise: true }
+  | { autorise: true; restant: number }
   | { autorise: false; secondesAvantReprise: number };
 
 export async function verifierLimite(userId: string): Promise<ResultatLimite> {
-  const [minute, jour] = await Promise.all([
-    limiteParMinute.limit(userId),
-    limiteParJour.limit(userId),
-  ]);
+  const resultat = await limiteurGenerations.limit(userId);
 
-  const bloquant = !minute.success ? minute : !jour.success ? jour : null;
-  if (!bloquant) return { autorise: true };
+  if (resultat.success) {
+    return { autorise: true, restant: resultat.remaining };
+  }
 
   return {
     autorise: false,
-    secondesAvantReprise: Math.max(1, Math.ceil((bloquant.reset - Date.now()) / 1000)),
+    secondesAvantReprise: Math.max(1, Math.ceil((resultat.reset - Date.now()) / 1000)),
   };
 }
 

@@ -19,6 +19,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
   const [apercu, setApercu] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [restant, setRestant] = useState<number | null>(null);
 
   const longueur = motsCles.trim().length;
   const valide =
@@ -100,6 +101,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
 
       setMotsCles("");
       setEtat(null);
+      setRestant(typeof donnees.restant === "number" ? donnees.restant : null);
       retirerPhoto();
       router.refresh();
     } catch {
@@ -112,8 +114,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
 
   return (
     <div className="rounded-3xl border border-sable bg-white p-6">
-      <p className="font-titre text-sm italic text-or-500">Nouvelle pièce</p>
-      <h2 className="mt-1 font-titre text-2xl font-semibold">Décris ton vêtement</h2>
+      <h2 className="text-2xl font-semibold">Décris ton vêtement</h2>
 
       <form onSubmit={envoyer} className="mt-5 flex flex-col gap-4">
         <div>
@@ -125,7 +126,11 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
             placeholder="Marque, type, couleur, taille…"
             className="h-28 w-full resize-none rounded-2xl border border-sable bg-creme p-4 outline-none transition placeholder:text-encre/40 focus:border-sauge-500 focus:bg-white focus:ring-4 focus:ring-sauge-100"
           />
-          <p className={`mt-1 text-xs ${longueur === 0 || longueur >= LIMITES.motsClesMin ? "text-encre/50" : "text-corail-600"}`}>
+          <p
+            className={`mt-1 text-xs ${
+              longueur === 0 || longueur >= LIMITES.motsClesMin ? "text-encre/50" : "text-corail-600"
+            }`}
+          >
             {longueur} / {LIMITES.motsClesMax} caractères, minimum {LIMITES.motsClesMin}
           </p>
         </div>
@@ -136,7 +141,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
               key={exemple}
               type="button"
               onClick={() => setMotsCles(exemple)}
-              className="rounded-full border border-sable px-3 py-1 text-xs text-encre/70 transition hover:border-sauge-500 hover:text-sauge-700"
+              className="rounded-md px-3 py-1 text-xs text-encre/70 ring-1 ring-sable transition hover:text-sauge-700 hover:ring-sauge-500"
             >
               {exemple}
             </button>
@@ -154,10 +159,10 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
                   type="button"
                   aria-pressed={actif}
                   onClick={() => setEtat(option)}
-                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                  className={`rounded-md px-3 py-1.5 text-sm ring-1 transition ${
                     actif
-                      ? "border-sauge-600 bg-sauge-600 text-white"
-                      : "border-sable text-encre/80 hover:border-sauge-500 hover:text-sauge-700"
+                      ? "bg-sauge-600 text-white ring-sauge-600"
+                      : "text-encre/80 ring-sable hover:text-sauge-700 hover:ring-sauge-500"
                   }`}
                 >
                   {option}
@@ -171,7 +176,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
         {apercu ? (
           <div className="flex items-center gap-4 rounded-2xl border border-sable p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={apercu} alt="Aperçu de la photo" className="h-20 w-16 rounded-xl object-cover" />
+            <img src={apercu} alt="Aperçu de la photo" className="h-20 w-16 rounded-md object-cover" />
             <div className="flex-1 text-sm">
               <p className="font-medium">Photo ajoutée</p>
               <button type="button" onClick={retirerPhoto} className="text-corail-600 hover:underline">
@@ -190,17 +195,23 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
         <button
           type="submit"
           disabled={!valide || chargement}
-          className="flex items-center justify-center gap-2 rounded-full bg-sauge-600 px-4 py-3 font-semibold text-white transition hover:bg-sauge-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center justify-center gap-2 rounded-md bg-sauge-600 px-4 py-3 font-semibold text-white transition hover:bg-sauge-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {chargement && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           )}
           {chargement ? "Envoi en cours…" : "Générer l’annonce"}
         </button>
+
+        {restant !== null && (
+          <p className="text-sm text-encre/60">
+            Il vous reste {restant} génération(s) pour l’heure en cours.
+          </p>
+        )}
       </form>
 
       {erreur && (
-        <p className="mt-4 rounded-2xl bg-corail-50 p-3 text-sm text-corail-600">{erreur}</p>
+        <p className="mt-4 rounded-md bg-corail-50 p-3 text-sm text-corail-600">{erreur}</p>
       )}
     </div>
   );

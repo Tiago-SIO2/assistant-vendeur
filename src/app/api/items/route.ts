@@ -5,7 +5,7 @@ import { creerClientAdmin } from "@/lib/supabase/admin";
 import { creerClientServeur } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  // 0. Session
+ 
   const supabase = await creerClientServeur();
   const {
     data: { user },
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Vous devez être connecté." }, { status: 401 });
   }
 
-  // 1. Validation
+
   const body = await request.json();
   const motsCles = typeof body.mots_cles === "string" ? body.mots_cles.trim() : "";
   const collectionId = typeof body.collection_id === "string" ? body.collection_id : "";
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Photo invalide." }, { status: 400 });
   }
 
-  // 2. La collection appartient-elle à l'utilisateur ? (RLS)
+  
   const { data: collection } = await supabase
     .from("collections")
     .select("id")
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Collection introuvable." }, { status: 404 });
   }
 
-  // 3. Limitation de débit
+  
   let limite: ResultatLimite;
   try {
     limite = await verifierLimite(user.id);
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // 4. Création de l'article « en attente », avec l'état choisi
+  
   const { data: item, error } = await supabase
     .from("items")
     .insert({
@@ -91,7 +91,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. Mise en file : QStash appellera le worker
   try {
     await qstash.publishJSON({
       url: `${process.env.APP_URL}/api/worker`,
@@ -107,6 +106,5 @@ export async function POST(request: Request) {
     );
   }
 
-  // 6. Réponse immédiate : 202 = accepté, traitement en cours
-  return Response.json(item, { status: 202 });
+  return Response.json({ ...item, restant: limite.restant }, { status: 202 });
 }
