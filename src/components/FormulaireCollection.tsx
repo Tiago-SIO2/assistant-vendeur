@@ -37,24 +37,24 @@ export default function FormulaireCollection() {
   }
 
   return (
-    <form onSubmit={creer} className="mt-6 flex flex-col gap-2">
-      <div className="flex gap-2">
+    <form onSubmit={creer} className="mt-6">
+      <div className="flex gap-2 rounded-full border border-sable bg-white p-1.5 pl-5 transition focus-within:border-sauge-500 focus-within:ring-4 focus-within:ring-sauge-100">
         <input
           value={nom}
           onChange={(e) => setNom(e.target.value)}
           maxLength={LIMITES.nomCollectionMax}
-          placeholder="Nom de la collection (ex : Vide-dressing printemps)"
-          className="flex-1 rounded border p-2"
+          placeholder="Nouvelle collection, ex : Vide-dressing printemps"
+          className="flex-1 bg-transparent outline-none placeholder:text-encre/40"
         />
         <button
           type="submit"
           disabled={!nom.trim() || chargement}
-          className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+          className="rounded-full bg-sauge-600 px-5 py-2.5 font-medium text-white transition hover:bg-sauge-700 disabled:opacity-40"
         >
           Créer
         </button>
       </div>
-      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+      {erreur && <p className="mt-2 pl-5 text-sm text-corail-600">{erreur}</p>}
     </form>
   );
 }

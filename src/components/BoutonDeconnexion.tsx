@@ -14,7 +14,10 @@ export default function BoutonDeconnexion() {
   }
 
   return (
-    <button onClick={deconnecter} className="rounded border px-3 py-1 hover:border-blue-500">
+    <button
+      onClick={deconnecter}
+      className="rounded-full border border-sable bg-white px-4 py-1.5 text-sm font-medium transition hover:border-corail-500 hover:text-corail-600"
+    >
       Se déconnecter
     </button>
   );

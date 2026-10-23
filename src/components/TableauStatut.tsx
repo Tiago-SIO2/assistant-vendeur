@@ -4,24 +4,15 @@ import { useState } from "react";
 import type { Etat, Rapport } from "@/lib/statut";
 
 const AFFICHAGE: Record<Etat, { libelle: string; classe: string }> = {
-  operationnel: {
-    libelle: "Opérationnel",
-    classe: "border-green-300 bg-green-50 text-green-700",
-  },
-  degrade: {
-    libelle: "Dégradé",
-    classe: "border-yellow-300 bg-yellow-50 text-yellow-700",
-  },
-  en_panne: {
-    libelle: "En panne",
-    classe: "border-red-300 bg-red-50 text-red-700",
-  },
+  operationnel: { libelle: "Opérationnel", classe: "bg-sauge-50 text-sauge-700 ring-sauge-100" },
+  degrade: { libelle: "Dégradé", classe: "bg-or-100 text-encre ring-or-500/40" },
+  en_panne: { libelle: "En panne", classe: "bg-corail-50 text-corail-600 ring-corail-500/40" },
 };
 
 function Badge({ etat }: { etat: Etat }) {
   const { libelle, classe } = AFFICHAGE[etat];
   return (
-    <span className={`inline-block whitespace-nowrap rounded border px-3 py-1 ${classe}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium ring-1 ${classe}`}>
       {libelle}
     </span>
   );
@@ -50,53 +41,57 @@ export default function TableauStatut({ rapportInitial }: { rapportInitial: Rapp
   }
 
   return (
-    <div className="mt-8">
-      <div className="flex items-end justify-between border-b pb-4">
+    <div className="mt-8 overflow-hidden rounded-3xl border border-sable bg-white">
+      <div className="flex flex-col gap-4 border-b border-sable p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-gray-500">Statut général</p>
-          <p className="mt-1 text-xl font-bold">{AFFICHAGE[rapport.global].libelle}</p>
+          <p className="text-sm text-encre/60">Statut général</p>
+          <div className="mt-2">
+            <Badge etat={rapport.global} />
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-500" suppressHydrationWarning>
+        <div className="sm:text-right">
+          <p className="text-sm text-encre/60" suppressHydrationWarning>
             Vérifié le {new Date(rapport.verifieLe).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}
           </p>
           <button
             onClick={relancer}
             disabled={chargement}
-            className="mt-2 rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+            className="mt-2 rounded-full bg-sauge-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sauge-700 disabled:opacity-50"
           >
             {chargement ? "Vérification…" : "Relancer les tests"}
           </button>
         </div>
       </div>
 
-      {erreur && <p className="mt-4 text-red-600">{erreur}</p>}
+      {erreur && <p className="px-6 pt-4 text-corail-600">{erreur}</p>}
 
-      <table className="mt-2 w-full border-collapse">
-        <thead>
-          <tr className="border-b text-left text-gray-500">
-            <th className="px-4 py-4 font-normal">Service</th>
-            <th className="px-4 py-4 font-normal">Statut</th>
-            <th className="px-4 py-4 font-normal">Latence</th>
-            <th className="px-4 py-4 font-normal">Détail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rapport.resultats.map((r) => (
-            <tr key={r.service} className="border-b align-top">
-              <td className="px-4 py-5">
-                <p className="font-semibold">{r.service}</p>
-                <p className="mt-1 text-gray-500">{r.description}</p>
-              </td>
-              <td className="px-4 py-5">
-                <Badge etat={r.etat} />
-              </td>
-              <td className="whitespace-nowrap px-4 py-5">{r.dureeMs} ms</td>
-              <td className="px-4 py-5">{r.detail}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="bg-creme text-left text-encre/60">
+              <th className="px-6 py-3 font-medium">Service</th>
+              <th className="px-6 py-3 font-medium">Statut</th>
+              <th className="px-6 py-3 font-medium">Latence</th>
+              <th className="px-6 py-3 font-medium">Détail</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-sable">
+            {rapport.resultats.map((r) => (
+              <tr key={r.service} className="align-top">
+                <td className="px-6 py-4">
+                  <p className="font-semibold">{r.service}</p>
+                  <p className="mt-0.5 text-encre/60">{r.description}</p>
+                </td>
+                <td className="px-6 py-4">
+                  <Badge etat={r.etat} />
+                </td>
+                <td className="whitespace-nowrap px-6 py-4 font-mono">{r.dureeMs} ms</td>
+                <td className="px-6 py-4 text-encre/80">{r.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

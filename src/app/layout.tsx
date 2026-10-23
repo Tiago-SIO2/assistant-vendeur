@@ -1,32 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Fraunces, Geist } from "next/font/google";
 import EnTete from "@/components/EnTete";
+import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Assistant Vendeur",
-  description: "Estimation de prix et descriptions de vêtements générées par IA",
+  description: "Vos annonces de vêtements par l’IA : titre, description et prix en quelques mots.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html
-      lang="fr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      
-      <body className="min-h-full flex flex-col"><EnTete />{children}</body>
+    <html lang="fr">
+      <body className={`${geist.variable} ${fraunces.variable} min-h-screen font-sans antialiased`}>
+        <EnTete />
+        {children}
+      </body>
     </html>
   );
 }

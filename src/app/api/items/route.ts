@@ -1,9 +1,11 @@
 import { COLONNES_ITEM, FORMAT_UUID, LIMITES } from "@/lib/annonce";
 import { genererAnnonce, type ResultatGeneration } from "@/lib/generer-annonce";
 import { reponseErreurIA } from "@/lib/erreurs-ia";
+import { formaterDelai, verifierLimite, type ResultatLimite } from "@/lib/limitation";
 import { creerClientServeur } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
+ 
   const supabase = await creerClientServeur();
   const {
     data: { user },
@@ -13,10 +15,11 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Vous devez être connecté." }, { status: 401 });
   }
 
+
   const body = await request.json();
   const motsCles = typeof body.mots_cles === "string" ? body.mots_cles.trim() : "";
   const collectionId = typeof body.collection_id === "string" ? body.collection_id : "";
-  const photoPath = typeof body.photo_path === "string" ? body.photo_path : null;
+  const photoPath = typeof body.photo_path === "string" ? body.photo_path : null; // photo
 
   if (!FORMAT_UUID.test(collectionId)) {
     return Response.json({ erreur: "Collection invalide." }, { status: 400 });
@@ -27,14 +30,11 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  const formatPhoto = new RegExp(`^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`); // photo
+  if (photoPath !== null && !formatPhoto.test(photoPath)) { // photo
+    return Response.json({ erreur: "Photo invalide." }, { status: 400 }); // photo
+  } // photo
 
-  // La photo doit être dans le dossier de l'utilisateur, avec un nom au bon format
-  const formatPhoto = new RegExp(
-    `^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`
-  );
-  if (photoPath !== null && !formatPhoto.test(photoPath)) {
-    return Response.json({ erreur: "Photo invalide." }, { status: 400 });
-  }
 
   const { data: collection } = await supabase
     .from("collections")
@@ -45,12 +45,32 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Collection introuvable." }, { status: 404 });
   }
 
+  let limite: ResultatLimite;
+  try {
+    limite = await verifierLimite(user.id);
+  } catch (erreur) {
+    console.error("Limitation de débit indisponible :", erreur);
+    return Response.json(
+      { erreur: "Service temporairement indisponible. Réessayez plus tard." },
+      { status: 503 }
+    );
+  }
+
+  if (!limite.autorise) {
+    return Response.json(
+      { erreur: `Tu as atteint la limite de générations. Réessaie dans ${formaterDelai(limite.secondesAvantReprise)}.` },
+      { status: 429, headers: { "Retry-After": String(limite.secondesAvantReprise) } }
+    );
+  }
+
+ 
   let resultat: ResultatGeneration;
   try {
     resultat = await genererAnnonce(motsCles);
   } catch (erreur) {
     return reponseErreurIA(erreur);
   }
+
 
   const { annonce } = resultat;
   const { data, error } = await supabase
@@ -66,7 +86,7 @@ export async function POST(request: Request) {
       couleur: annonce.couleur,
       etat: annonce.etat,
       hashtags: annonce.hashtags,
-      photo_path: photoPath,
+      photo_path: photoPath, 
       statut: "termine",
     })
     .select(COLONNES_ITEM)

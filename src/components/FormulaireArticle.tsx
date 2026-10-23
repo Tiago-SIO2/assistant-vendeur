@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { LIMITES, PHOTOS } from "@/lib/annonce";
 import { creerClientNavigateur } from "@/lib/supabase/client";
 
+const EXEMPLES = [
+  "Jean Levi's 501 bleu taille 40 bon état",
+  "Doudoune The North Face noire taille L",
+  "Robe Zara fleurie verte taille M",
+];
+
 export default function FormulaireArticle({ collectionId }: { collectionId: string }) {
   const router = useRouter();
   const [motsCles, setMotsCles] = useState("");
@@ -19,13 +25,11 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
   function choisirPhoto(e: ChangeEvent<HTMLInputElement>) {
     const fichier = e.target.files?.[0] ?? null;
     setErreur("");
-
     if (apercu) URL.revokeObjectURL(apercu);
     setPhoto(null);
     setApercu(null);
 
     if (!fichier) return;
-
     if (!PHOTOS.extensions[fichier.type]) {
       setErreur("Formats acceptés : JPEG, PNG ou WebP.");
       e.target.value = "";
@@ -36,7 +40,6 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
       e.target.value = "";
       return;
     }
-
     setPhoto(fichier);
     setApercu(URL.createObjectURL(fichier));
   }
@@ -56,7 +59,6 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
     let photoPath: string | null = null;
 
     try {
-      // 1. Envoi de la photo directement dans Supabase Storage, dans le dossier de l'utilisateur
       if (photo) {
         const {
           data: { user },
@@ -65,14 +67,10 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
           setErreur("Ta session a expiré, reconnecte-toi.");
           return;
         }
-
-        const extension = PHOTOS.extensions[photo.type];
-        photoPath = `${user.id}/${crypto.randomUUID()}.${extension}`;
-
+        photoPath = `${user.id}/${crypto.randomUUID()}.${PHOTOS.extensions[photo.type]}`;
         const { error } = await supabase.storage
           .from(PHOTOS.bucket)
           .upload(photoPath, photo, { contentType: photo.type, upsert: false });
-
         if (error) {
           console.error(error);
           setErreur("L’envoi de la photo a échoué.");
@@ -80,20 +78,14 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
         }
       }
 
-      // 2. Génération et enregistrement de l'annonce
       const reponse = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          collection_id: collectionId,
-          mots_cles: motsCles,
-          photo_path: photoPath,
-        }),
+        body: JSON.stringify({ collection_id: collectionId, mots_cles: motsCles, photo_path: photoPath }),
       });
       const donnees = await reponse.json();
 
       if (!reponse.ok) {
-        // On ne laisse pas une photo orpheline dans le stockage
         if (photoPath) await supabase.storage.from(PHOTOS.bucket).remove([photoPath]);
         setErreur(donnees.erreur ?? "Une erreur est survenue.");
         return;
@@ -111,63 +103,71 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
   }
 
   return (
-    <div className="mt-6">
-      <form onSubmit={envoyer} className="flex flex-col gap-4">
+    <div className="rounded-3xl border border-sable bg-white p-6">
+      <p className="font-titre text-sm italic text-or-500">Nouvelle pièce</p>
+      <h2 className="mt-1 font-titre text-2xl font-semibold">Décris ton vêtement</h2>
+
+      <form onSubmit={envoyer} className="mt-5 flex flex-col gap-4">
         <div>
-          <label htmlFor="mots_cles" className="block font-medium">
-            Mots-clés du vêtement
-          </label>
           <textarea
-            id="mots_cles"
+            aria-label="Mots-clés du vêtement"
             value={motsCles}
             onChange={(e) => setMotsCles(e.target.value)}
             maxLength={LIMITES.motsClesMax}
-            placeholder="Exemple : Jean Levi's 501 vintage bleu taille 40 bon état"
-            className="mt-1 h-28 w-full rounded border p-2"
+            placeholder="Marque, type, couleur, taille, état…"
+            className="h-28 w-full resize-none rounded-2xl border border-sable bg-creme p-4 outline-none transition placeholder:text-encre/40 focus:border-sauge-500 focus:bg-white focus:ring-4 focus:ring-sauge-100"
           />
-          <p
-            className={`mt-1 text-sm ${
-              longueur === 0 || valide ? "text-gray-500" : "text-red-600"
-            }`}
-          >
-            {longueur} caractères (entre {LIMITES.motsClesMin} et {LIMITES.motsClesMax})
+          <p className={`mt-1 text-xs ${longueur === 0 || valide ? "text-encre/50" : "text-corail-600"}`}>
+            {longueur} / {LIMITES.motsClesMax} caractères, minimum {LIMITES.motsClesMin}
           </p>
         </div>
 
-        <div>
-          <p className="font-medium">Photo (facultative)</p>
-          {apercu ? (
-            <div className="mt-2 flex items-center gap-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={apercu} alt="Aperçu de la photo" className="h-24 w-24 rounded-lg object-cover" />
-              <button type="button" onClick={retirerPhoto} className="text-sm text-red-500 underline">
-                Retirer la photo
+        <div className="flex flex-wrap gap-2">
+          {EXEMPLES.map((exemple) => (
+            <button
+              key={exemple}
+              type="button"
+              onClick={() => setMotsCles(exemple)}
+              className="rounded-full border border-sable px-3 py-1 text-xs text-encre/70 transition hover:border-sauge-500 hover:text-sauge-700"
+            >
+              {exemple}
+            </button>
+          ))}
+        </div>
+
+        {apercu ? (
+          <div className="flex items-center gap-4 rounded-2xl border border-sable p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={apercu} alt="Aperçu de la photo" className="h-20 w-16 rounded-xl object-cover" />
+            <div className="flex-1 text-sm">
+              <p className="font-medium">Photo ajoutée</p>
+              <button type="button" onClick={retirerPhoto} className="text-corail-600 hover:underline">
+                Retirer
               </button>
             </div>
-          ) : (
-            <label className="mt-2 flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed p-6 text-sm text-gray-500 hover:border-teal-500 hover:text-teal-600">
-              Choisir une photo (JPEG, PNG ou WebP, 5 Mo max)
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={choisirPhoto}
-                className="hidden"
-              />
-            </label>
-          )}
-        </div>
+          </div>
+        ) : (
+          <label className="flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-sable p-5 text-center transition hover:border-sauge-500 hover:bg-sauge-50">
+            <span className="text-sm font-medium text-sauge-700">Ajouter une photo</span>
+            <span className="mt-1 text-xs text-encre/50">JPEG, PNG ou WebP, 5 Mo maximum</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={choisirPhoto} className="hidden" />
+          </label>
+        )}
 
         <button
           type="submit"
           disabled={!valide || chargement}
-          className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center justify-center gap-2 rounded-full bg-sauge-600 px-4 py-3 font-semibold text-white transition hover:bg-sauge-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {chargement ? "Génération en cours…" : "Générer l’annonce"}
+          {chargement && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          )}
+          {chargement ? "Rédaction en cours…" : "Générer l’annonce"}
         </button>
       </form>
 
       {erreur && (
-        <p className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-red-700">{erreur}</p>
+        <p className="mt-4 rounded-2xl bg-corail-50 p-3 text-sm text-corail-600">{erreur}</p>
       )}
     </div>
   );

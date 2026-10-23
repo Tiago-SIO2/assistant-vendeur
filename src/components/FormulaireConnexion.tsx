@@ -30,16 +30,18 @@ export default function FormulaireConnexion() {
 
   if (etat === "envoye") {
     return (
-      <p className="mt-6 rounded border border-green-300 bg-green-50 p-4 text-green-800">
-        Lien envoyé à <strong>{email}</strong>. Ouvre l’e-mail <strong>dans ce même navigateur</strong> et
-        clique sur le lien pour te connecter.
-      </p>
+      <div className="mt-8 rounded-3xl border border-sauge-100 bg-sauge-50 p-6">
+        <p className="font-titre text-xl font-semibold text-sauge-700">Vérifie ta boîte mail</p>
+        <p className="mt-2 text-sm text-encre/70">
+          Lien envoyé à <strong>{email}</strong>. Ouvre-le dans ce même navigateur.
+        </p>
+      </div>
     );
   }
 
   return (
-    <form onSubmit={envoyer} className="mt-6 flex flex-col gap-3">
-      <label htmlFor="email" className="font-medium">
+    <form onSubmit={envoyer} className="mt-8 flex flex-col gap-3">
+      <label htmlFor="email" className="text-sm font-medium">
         Adresse e-mail
       </label>
       <input
@@ -49,16 +51,19 @@ export default function FormulaireConnexion() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="toi@exemple.com"
-        className="rounded border p-2"
+        className="rounded-full border border-sable bg-white px-5 py-3 outline-none transition focus:border-sauge-500 focus:ring-4 focus:ring-sauge-100"
       />
       <button
         type="submit"
         disabled={etat === "envoi"}
-        className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+        className="mt-2 flex items-center justify-center gap-2 rounded-full bg-sauge-600 px-4 py-3 font-semibold text-white transition hover:bg-sauge-700 disabled:opacity-50"
       >
-        {etat === "envoi" ? "Envoi…" : "Recevoir un lien de connexion"}
+        {etat === "envoi" && (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        )}
+        {etat === "envoi" ? "Envoi…" : "Recevoir mon lien"}
       </button>
-      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+      {erreur && <p className="text-sm text-corail-600">{erreur}</p>}
     </form>
   );
 }

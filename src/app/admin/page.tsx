@@ -19,7 +19,8 @@ export default async function PageAdmin() {
   const rapport = await verifierTousLesServices();
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+  <h1 className="font-titre text-4xl font-semibold tracking-tight">Administration</h1>
       <h1 className="text-3xl font-bold">Administration</h1>
       <p className="mt-2 text-gray-500">État des services dont dépend l’application.</p>
       <TableauStatut rapportInitial={rapport} />

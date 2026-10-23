@@ -1,5 +1,6 @@
 import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
+import Logo from "@/components/Logo";
 import { estAdmin } from "@/lib/admin";
 import { creerClientServeur } from "@/lib/supabase/server";
 
@@ -14,20 +15,22 @@ export default async function EnTete() {
   }
 
   return (
-    <header className="border-b">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 p-4 text-sm">
-        <nav className="flex items-center gap-4">
-          <Link href="/" className="font-semibold">
-            Assistant Vendeur
-          </Link>
+    <header className="sticky top-0 z-10 border-b border-sable bg-creme/90 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <Link href="/">
+          <Logo taille={40} />
+        </Link>
+
+        <div className="flex items-center gap-3">
           {estAdmin(user.email) && (
-            <Link href="/admin" className="text-gray-500 hover:underline">
+            <Link
+              href="/admin"
+              className="hidden rounded-full px-3 py-1.5 text-sm font-medium text-encre/70 hover:bg-sable sm:block"
+            >
               Administration
             </Link>
           )}
-        </nav>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-500">{user.email}</span>
+          <span className="hidden text-sm text-encre/60 md:block">{user.email}</span>
           <BoutonDeconnexion />
         </div>
       </div>
