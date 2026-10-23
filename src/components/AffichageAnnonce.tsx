@@ -14,14 +14,13 @@ export default function AffichageAnnonce({
   const pastilles = [annonce.marque, annonce.taille && `Taille ${annonce.taille}`, annonce.couleur].filter(
     (valeur): valeur is string => Boolean(valeur)
   );
-  const etatConnu = annonce.etat !== "Non précisé";
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-sable bg-white transition hover:border-sauge-500">
       {photoUrl && (
         <div className="relative aspect-[4/5] w-full bg-sable">
           <Image src={photoUrl} alt={annonce.titre} fill unoptimized sizes="(min-width: 640px) 50vw, 100vw" className="object-cover" />
-          {etatConnu && (
+          {annonce.etat && (
             <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-corail-600">
               {annonce.etat}
             </span>
@@ -37,9 +36,9 @@ export default function AffichageAnnonce({
           </p>
         </div>
 
-        {(pastilles.length > 0 || (!photoUrl && etatConnu)) && (
+        {(pastilles.length > 0 || (!photoUrl && annonce.etat)) && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {!photoUrl && etatConnu && (
+            {!photoUrl && annonce.etat && (
               <span className="rounded-full border border-corail-500 px-2.5 py-0.5 text-xs font-medium text-corail-600">
                 {annonce.etat}
               </span>

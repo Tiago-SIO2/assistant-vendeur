@@ -1,10 +1,7 @@
 export const ETATS = [
-  "Neuf avec étiquette",
   "Neuf sans étiquette",
   "Très bon état",
   "Bon état",
-  "Satisfaisant",
-  "Non précisé",
 ] as const;
 
 export type Etat = (typeof ETATS)[number];
@@ -17,7 +14,7 @@ export type Annonce = {
   marque: string;
   taille: string;
   couleur: string;
-  etat: Etat;
+  etat: Etat | null;
   hashtags: string[];
 };
 
@@ -78,7 +75,7 @@ export function itemVersAnnonce(item: Item): Annonce {
     marque: item.marque ?? "",
     taille: item.taille ?? "",
     couleur: item.couleur ?? "",
-    etat: item.etat ?? "Non précisé",
+    etat: item.etat ?? null,
     hashtags: item.hashtags ?? [],
   };
 }
@@ -87,7 +84,7 @@ export function annonceEnTexte(annonce: Annonce): string {
   const caracteristiques = [
     annonce.marque && `Marque : ${annonce.marque}`,
     annonce.taille && `Taille : ${annonce.taille}`,
-    annonce.etat !== "Non précisé" && `État : ${annonce.etat}`,
+    annonce.etat && `État : ${annonce.etat}`,
     annonce.couleur && `Couleur : ${annonce.couleur}`,
   ].filter(Boolean);
 

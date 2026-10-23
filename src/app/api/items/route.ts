@@ -1,4 +1,4 @@
-import { COLONNES_ITEM, FORMAT_UUID, LIMITES } from "@/lib/annonce";
+import { COLONNES_ITEM, ETATS, FORMAT_UUID, LIMITES, type Etat } from "@/lib/annonce";
 import { formaterDelai, verifierLimite, type ResultatLimite } from "@/lib/limitation";
 import { NOMBRE_RELANCES, qstash } from "@/lib/qstash";
 import { creerClientAdmin } from "@/lib/supabase/admin";
@@ -19,7 +19,11 @@ export async function POST(request: Request) {
   const body = await request.json();
   const motsCles = typeof body.mots_cles === "string" ? body.mots_cles.trim() : "";
   const collectionId = typeof body.collection_id === "string" ? body.collection_id : "";
-  const photoPath = typeof body.photo_path === "string" ? body.photo_path : null; // photo
+  const photoPath = typeof body.photo_path === "string" ? body.photo_path : null;
+  const etat: Etat | null =
+    typeof body.etat === "string" && (ETATS as readonly string[]).includes(body.etat)
+      ? (body.etat as Etat)
+      : null;
 
   if (!FORMAT_UUID.test(collectionId)) {
     return Response.json({ erreur: "Collection invalide." }, { status: 400 });
@@ -30,10 +34,13 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const formatPhoto = new RegExp(`^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`); // photo
-  if (photoPath !== null && !formatPhoto.test(photoPath)) { // photo
-    return Response.json({ erreur: "Photo invalide." }, { status: 400 }); // photo
-  } // photo
+  if (etat === null) {
+    return Response.json({ erreur: "Choisis l'état du vêtement." }, { status: 400 });
+  }
+  const formatPhoto = new RegExp(`^${user.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`);
+  if (photoPath !== null && !formatPhoto.test(photoPath)) {
+    return Response.json({ erreur: "Photo invalide." }, { status: 400 });
+  }
 
   // 2. La collection appartient-elle à l'utilisateur ? (RLS)
   const { data: collection } = await supabase
@@ -63,13 +70,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // 4. Création de l'article « en attente », avec la session de l'utilisateur
+  // 4. Création de l'article « en attente », avec l'état choisi
   const { data: item, error } = await supabase
     .from("items")
     .insert({
       collection_id: collectionId,
       mots_cles: motsCles,
-      photo_path: photoPath, // photo
+      etat,
+      photo_path: photoPath,
       statut: "en_attente",
     })
     .select(COLONNES_ITEM)
@@ -92,7 +100,6 @@ export async function POST(request: Request) {
     });
   } catch (erreurFile) {
     console.error("Mise en file impossible :", erreurFile);
-    // Pas de règle UPDATE pour l'utilisateur : le serveur passe par le client admin
     await creerClientAdmin().from("items").update({ statut: "erreur" }).eq("id", item.id);
     return Response.json(
       { erreur: "La génération n'a pas pu être lancée. Réessayez plus tard." },

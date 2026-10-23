@@ -1,5 +1,5 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
-import { FORMAT_UUID } from "@/lib/annonce";
+import { FORMAT_UUID, type Etat } from "@/lib/annonce";
 import { genererAnnonce } from "@/lib/generer-annonce";
 import { ErreurIA } from "@/lib/ia";
 import { NOMBRE_RELANCES } from "@/lib/qstash";
@@ -27,7 +27,7 @@ async function traiter(request: Request) {
 
   const { data: item } = await supabase
     .from("items")
-    .select("id, mots_cles, statut")
+    .select("id, mots_cles, statut, etat")
     .eq("id", itemId)
     .maybeSingle();
 
@@ -37,7 +37,7 @@ async function traiter(request: Request) {
   }
 
   try {
-    const { annonce } = await genererAnnonce(item.mots_cles);
+    const { annonce } = await genererAnnonce(item.mots_cles, (item.etat as Etat | null) ?? null);
 
     await supabase
       .from("items")
@@ -59,13 +59,13 @@ async function traiter(request: Request) {
   } catch (erreur) {
     const relances = Number(request.headers.get("Upstash-Retried") ?? "0");
 
-    // Erreur passagère et relances restantes : code 500 pour que QStash réessaie plus tard
+    // Erreur passagère et relances restantes : code 500 pour que QStash réessaie
     if (estTemporaire(erreur) && relances < NOMBRE_RELANCES) {
       console.warn(`Erreur passagère, relance ${relances + 1}/${NOMBRE_RELANCES} :`, erreur);
       return Response.json({ erreur: "Réessai demandé." }, { status: 500 });
     }
 
-    // Erreur définitive : on l'indique sur l'article et on arrête les relances
+    // Erreur définitive : on l'indique sur l'article
     console.error("Génération abandonnée :", erreur);
     await supabase
       .from("items")

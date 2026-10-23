@@ -2,11 +2,11 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { LIMITES, PHOTOS } from "@/lib/annonce";
+import { ETATS, LIMITES, PHOTOS, type Etat } from "@/lib/annonce";
 import { creerClientNavigateur } from "@/lib/supabase/client";
 
 const EXEMPLES = [
-  "Jean Levi's 501 bleu taille 40 bon état",
+  "Jean Levi's 501 bleu taille 40",
   "Doudoune The North Face noire taille L",
   "Robe Zara fleurie verte taille M",
 ];
@@ -14,13 +14,15 @@ const EXEMPLES = [
 export default function FormulaireArticle({ collectionId }: { collectionId: string }) {
   const router = useRouter();
   const [motsCles, setMotsCles] = useState("");
+  const [etat, setEtat] = useState<Etat | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [apercu, setApercu] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState("");
 
   const longueur = motsCles.trim().length;
-  const valide = longueur >= LIMITES.motsClesMin && longueur <= LIMITES.motsClesMax;
+  const valide =
+    longueur >= LIMITES.motsClesMin && longueur <= LIMITES.motsClesMax && etat !== null;
 
   function choisirPhoto(e: ChangeEvent<HTMLInputElement>) {
     const fichier = e.target.files?.[0] ?? null;
@@ -81,7 +83,12 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
       const reponse = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ collection_id: collectionId, mots_cles: motsCles, photo_path: photoPath }),
+        body: JSON.stringify({
+          collection_id: collectionId,
+          mots_cles: motsCles,
+          etat,
+          photo_path: photoPath,
+        }),
       });
       const donnees = await reponse.json();
 
@@ -92,6 +99,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
       }
 
       setMotsCles("");
+      setEtat(null);
       retirerPhoto();
       router.refresh();
     } catch {
@@ -114,10 +122,10 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
             value={motsCles}
             onChange={(e) => setMotsCles(e.target.value)}
             maxLength={LIMITES.motsClesMax}
-            placeholder="Marque, type, couleur, taille, état…"
+            placeholder="Marque, type, couleur, taille…"
             className="h-28 w-full resize-none rounded-2xl border border-sable bg-creme p-4 outline-none transition placeholder:text-encre/40 focus:border-sauge-500 focus:bg-white focus:ring-4 focus:ring-sauge-100"
           />
-          <p className={`mt-1 text-xs ${longueur === 0 || valide ? "text-encre/50" : "text-corail-600"}`}>
+          <p className={`mt-1 text-xs ${longueur === 0 || longueur >= LIMITES.motsClesMin ? "text-encre/50" : "text-corail-600"}`}>
             {longueur} / {LIMITES.motsClesMax} caractères, minimum {LIMITES.motsClesMin}
           </p>
         </div>
@@ -134,6 +142,31 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
             </button>
           ))}
         </div>
+
+        <fieldset>
+          <legend className="text-sm font-medium">État du vêtement</legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ETATS.map((option) => {
+              const actif = etat === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={actif}
+                  onClick={() => setEtat(option)}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                    actif
+                      ? "border-sauge-600 bg-sauge-600 text-white"
+                      : "border-sable text-encre/80 hover:border-sauge-500 hover:text-sauge-700"
+                  }`}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+          {!etat && <p className="mt-1 text-xs text-encre/50">Choisis l’état pour continuer.</p>}
+        </fieldset>
 
         {apercu ? (
           <div className="flex items-center gap-4 rounded-2xl border border-sable p-3">
@@ -162,7 +195,7 @@ export default function FormulaireArticle({ collectionId }: { collectionId: stri
           {chargement && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           )}
-          {chargement ? "Rédaction en cours…" : "Générer l’annonce"}
+          {chargement ? "Envoi en cours…" : "Générer l’annonce"}
         </button>
       </form>
 
