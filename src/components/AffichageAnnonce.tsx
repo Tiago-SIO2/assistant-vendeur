@@ -51,11 +51,7 @@ export default function AffichageAnnonce({
           </div>
         )}
 
-        <div className="my-4 flex items-center gap-3" aria-hidden="true">
-          <span className="h-px flex-1 bg-sable" />
-          <span className="h-1.5 w-1.5 rotate-45 bg-or-500" />
-          <span className="h-px flex-1 bg-sable" />
-        </div>
+                <hr className="my-4 border-sable" />
 
         <p className="whitespace-pre-line text-sm leading-relaxed text-encre/80">{annonce.description}</p>
 
