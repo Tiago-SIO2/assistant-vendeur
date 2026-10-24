@@ -3,6 +3,7 @@ import { QUOTA_GENERATIONS, redis } from "@/lib/limitation";
 import { qstash } from "@/lib/qstash";
 import type { Controle } from "@/lib/statut";
 import { creerClientAdmin } from "@/lib/supabase/admin";
+import { verifierLangfuse } from "@/lib/langfuse";
 
 const controleVercel: Controle = {
   service: "Vercel",
@@ -165,6 +166,11 @@ const controleRealtime: Controle = {
     }
   },
 };
+const controleLangfuse: Controle = {
+  service: "Langfuse",
+  description: "Traçage des appels au modèle d'IA",
+  verifier: verifierLangfuse,
+};
 
 export const CONTROLES: Controle[] = [
   controleVercel,
@@ -175,4 +181,5 @@ export const CONTROLES: Controle[] = [
   controleRedis,
   controleQStash,
   controleRealtime,
+  controleLangfuse,
 ];

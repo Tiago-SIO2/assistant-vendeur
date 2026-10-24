@@ -2,6 +2,7 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { FORMAT_UUID, type Etat } from "@/lib/annonce";
 import { genererAnnonce } from "@/lib/generer-annonce";
 import { ErreurIA } from "@/lib/ia";
+import { avecTraceGeneration } from "@/lib/langfuse";
 import { NOMBRE_RELANCES } from "@/lib/qstash";
 import { creerClientAdmin } from "@/lib/supabase/admin";
 
@@ -27,7 +28,7 @@ async function traiter(request: Request) {
 
   const { data: item } = await supabase
     .from("items")
-    .select("id, mots_cles, statut, etat")
+    .select("id, mots_cles, statut, etat, user_id")
     .eq("id", itemId)
     .maybeSingle();
 
@@ -36,8 +37,17 @@ async function traiter(request: Request) {
     return Response.json({ ignore: true });
   }
 
+  const etatChoisi = (item.etat as Etat | null) ?? null;
+
   try {
-    const { annonce } = await genererAnnonce(item.mots_cles, (item.etat as Etat | null) ?? null);
+    const { annonce } = await avecTraceGeneration(
+      {
+        utilisateur: item.user_id,
+        itemId,
+        entree: { mots_cles: item.mots_cles, etat: etatChoisi },
+      },
+      () => genererAnnonce(item.mots_cles, etatChoisi)
+    );
 
     await supabase
       .from("items")
