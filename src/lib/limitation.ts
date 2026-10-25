@@ -6,7 +6,7 @@ import { Redis } from "@upstash/redis";
 export const redis = Redis.fromEnv();
 
 // Nombre de générations autorisées par utilisateur et par heure : change ce chiffre pour régler la limite
-export const QUOTA_GENERATIONS = 4;
+export const QUOTA_GENERATIONS = 30;
 
 const limiteurGenerations = new Ratelimit({
   redis,
